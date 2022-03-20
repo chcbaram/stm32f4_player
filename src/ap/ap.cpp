@@ -12,8 +12,9 @@
 typedef struct
 {
   uint32_t pre_time;
-  uint16_t x_time;
-  uint8_t  mode;
+  button_obj_t btn_sw;    
+  uint8_t box_i;
+  bool update_screen;  
 } args_t;
 
 
@@ -37,6 +38,21 @@ void apInit(void)
 {
   lcdSetBackLight(20);
 
+  lcdClearBuffer(black);
+  lcdDrawRect(0, 0, 128, 64, white);
+  
+  lcdDrawFillRect(12+3,12+3, 104, 22, white);
+  lcdDrawFillRect(12  ,12  , 104, 22, black);  
+  lcdDrawRect    (12  ,12  , 104, 22, white);
+
+  lcdPrintf(16,16, white, "Music Player");    
+  lcdSetFont(LCD_FONT_07x10);    
+  lcdPrintf(32,42, white, "%s", _DEF_FIRMWATRE_VERSION);    
+  lcdRequestDraw();
+  delay(1500);
+  
+  lcdSetFont(LCD_FONT_HAN);
+
   cliOpen(_DEF_UART1, 57600);   // USB
   cliAdd("boot", cliBoot);
 }
@@ -45,16 +61,14 @@ void apMain(void)
 {
   uint32_t pre_time;
   args_t args;
-  button_obj_t btn_sw;    
-  uint8_t box_i = 0;
-  bool update_screen = true;
 
-  buttonObjCreate(&btn_sw, 0, 50, 1000, 100);      
 
-  args.mode = 0;
-  args.x_time = 0;
+  
+
+  args.box_i = 0;
   args.pre_time = millis();
-
+  args.update_screen = true;
+  buttonObjCreate(&args.btn_sw, 0, 50, 1000, 100);      
 
   pre_time = millis();
   while(1)
@@ -66,41 +80,7 @@ void apMain(void)
     }
 
     cliMain();
-    if (buttonObjUpdate(&btn_sw) == true)
-    {
-      if (buttonObjGetEvent(&btn_sw) & BUTTON_EVT_CLICKED)
-      {
-        box_i = (box_i + 1) % 3;
-        update_screen = true;
-      } 
-      buttonObjClearEvent(&btn_sw);
-    }
-
-    
-    if (update_screen == true)
-    {
-      update_screen = false;
-
-      lcdClearBuffer(black);
-      lcdDrawRect(0, 0, 128, 64, white);
-      lcdPrintf(32, 0, white, "- Menu -");      
-      lcdDrawFillRect(0, 16 + 16*box_i, 128, 16, white);
-
-      for (int i=0; i<3; i++)
-      {
-        if (i == box_i)
-        {
-          lcdPrintf(0, 16 + 16*i, black, " %d.%s", i+1, menu_list[i]);
-        }
-        else
-        {
-          lcdPrintf(0, 16 + 16*i, white, " %d.%s", i+1, menu_list[i]);
-        }
-      }
-      lcdRequestDraw();
-    }
-
-    //lcdMain(&args);   
+    lcdMain(&args);   
   }
 }
 
@@ -111,41 +91,36 @@ void lcdMain(args_t *p_args)
     return;
   }
 
-  if (millis()-p_args->pre_time >= (1000/5) && lcdDrawAvailable() == true)
+  if (buttonObjUpdate(&p_args->btn_sw) == true)
   {
-    p_args->pre_time = millis();
+    if (buttonObjGetEvent(&p_args->btn_sw) & BUTTON_EVT_CLICKED)
+    {
+      p_args->box_i = (p_args->box_i + 1) % 3;
+      p_args->update_screen = true;
+    } 
+    buttonObjClearEvent(&p_args->btn_sw);
+  }
+    
+  if (p_args->update_screen == true)
+  {
+    p_args->update_screen = false;
 
     lcdClearBuffer(black);
+    lcdDrawRect(0, 0, 128, 64, white);
+    lcdPrintf(32, 0, white, "- Menu -");      
+    lcdDrawFillRect(0, 16 + 16*p_args->box_i, 128, 16, white);
 
-    uint16_t x1 = 0;
-    uint16_t x2 = 0;
-
-
-    if (buttonGetPressed(_DEF_BUTTON1))
+    for (int i=0; i<3; i++)
     {
-      p_args->mode = (p_args->mode + 1)%2;
-      delay(200);
+      if (i == p_args->box_i)
+      {
+        lcdPrintf(0, 16 + 16*i, black, " %d.%s", i+1, menu_list[i]);
+      }
+      else
+      {
+        lcdPrintf(0, 16 + 16*i, white, " %d.%s", i+1, menu_list[i]);
+      }
     }
-    if (p_args->mode == 0)
-    {
-      p_args->x_time += 2;
-
-      x1 = p_args->x_time;
-      x1 %= (LCD_WIDTH-img_logo.header.w);;
-
-      x2 = p_args->x_time;
-      x2 %= (LCD_WIDTH-img_logo.header.w);
-      x2 = LCD_WIDTH - img_logo.header.w - x2;
-
-      lcdDrawImage(x1, 0, &img_logo);
-      lcdDrawImage(x2, 0, &img_logo2);
-    }
-
-    if (p_args->mode == 1)
-    {
-      lcdPrintfResize(0,16, green, 32, "Mode 1");
-    }
-
     lcdRequestDraw();
   }
 }

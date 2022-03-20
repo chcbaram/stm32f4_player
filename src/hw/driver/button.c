@@ -88,6 +88,15 @@ uint16_t buttonGetData(void)
 }
 
 #if HW_BUTTON_OBJ_USE == 1
+enum ButtonObjState
+{
+  BUTTON_OBJ_WAIT_FOR_RELEASED,
+  BUTTON_OBJ_WAIT_FOR_PRESSED,
+  BUTTON_OBJ_PRESSED,
+  BUTTON_OBJ_REPEATED_START,
+  BUTTON_OBJ_REPEATED,
+};
+
 void buttonObjCreate(button_obj_t *p_obj, uint8_t ch, uint32_t pressed_time, uint32_t repeat_start_time, uint32_t repeat_pressed_time)
 {
   p_obj->ch = ch;
@@ -101,14 +110,6 @@ void buttonObjCreate(button_obj_t *p_obj, uint8_t ch, uint32_t pressed_time, uin
   p_obj->click_count = 0;
 }
 
-enum ButtonObjState
-{
-  BUTTON_OBJ_WAIT_FOR_PRESSED,
-  BUTTON_OBJ_PRESSED,
-  BUTTON_OBJ_REPEATED_START,
-  BUTTON_OBJ_REPEATED,
-};
-
 bool buttonObjUpdate(button_obj_t *p_obj)
 {
   bool ret = false;
@@ -116,6 +117,13 @@ bool buttonObjUpdate(button_obj_t *p_obj)
 
   switch(p_obj->state)
   {
+    case BUTTON_OBJ_WAIT_FOR_RELEASED:
+      if (buttonGetPressed(p_obj->ch) == false)
+      {
+        p_obj->state = BUTTON_OBJ_WAIT_FOR_PRESSED;
+      }
+      break;
+
     case BUTTON_OBJ_WAIT_FOR_PRESSED:
       if (buttonGetPressed(p_obj->ch) == true)
       {

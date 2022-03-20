@@ -32,8 +32,8 @@ __attribute__((section(".tag"))) firm_tag_t firm_tag =
 
 __attribute__((section(".version"))) firm_version_t firm_ver =
     {
-        "V220320R1",
-        "STM32F_PLAYER"
+        _DEF_FIRMWATRE_VERSION,
+        _DEF_BOARD_NAME
     };
 
 

@@ -14,6 +14,10 @@
 
 
 
+#define _DEF_FIRMWATRE_VERSION    "V220320R1"
+#define _DEF_BOARD_NAME           "STM32F_PLAYER"
+
+
 
 //#define _USE_HW_SD
 //#define _USE_HW_FATFS
