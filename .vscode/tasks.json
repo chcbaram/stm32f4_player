@@ -1,0 +1,12 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "down_fw",
+      "type": "shell",
+      "command": "tools/stm32cli com38 2000000 fw 0x8010000 build/stm32f4_player.bin 1"
+    }
+  ]
+}
