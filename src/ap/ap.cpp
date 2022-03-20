@@ -24,26 +24,32 @@ LCD_IMAGE_DEF(img_logo2);
 void cliBoot(cli_args_t *args);
 void lcdMain(args_t *p_args);
 
+const char *menu_list[] = 
+{
+  "Files",
+  "Setup",
+  "About"
+};
+
 
 
 void apInit(void)
 {
-  lcdSetBackLight(50);
+  lcdSetBackLight(20);
 
   cliOpen(_DEF_UART1, 57600);   // USB
   cliAdd("boot", cliBoot);
-
-
-  //lcdDrawRect(0, 0, 128, 64, white);
-  lcdPrintf(32, 0, white, "- Menu -");
-  lcdPrintf( 0,16, white, " Files");
-  lcdRequestDraw();
 }
 
 void apMain(void)
 {
   uint32_t pre_time;
   args_t args;
+  button_obj_t btn_sw;    
+  uint8_t box_i = 0;
+  bool update_screen = true;
+
+  buttonObjCreate(&btn_sw, 0, 50, 1000, 100);      
 
   args.mode = 0;
   args.x_time = 0;
@@ -56,10 +62,43 @@ void apMain(void)
     if (millis()-pre_time >= 500)
     {
       pre_time = millis();
-      ledToggle(_DEF_LED1);
+      //ledToggle(_DEF_LED1);
     }
 
     cliMain();
+    if (buttonObjUpdate(&btn_sw) == true)
+    {
+      if (buttonObjGetEvent(&btn_sw) & BUTTON_EVT_CLICKED)
+      {
+        box_i = (box_i + 1) % 3;
+        update_screen = true;
+      } 
+      buttonObjClearEvent(&btn_sw);
+    }
+
+    
+    if (update_screen == true)
+    {
+      update_screen = false;
+
+      lcdClearBuffer(black);
+      lcdDrawRect(0, 0, 128, 64, white);
+      lcdPrintf(32, 0, white, "- Menu -");      
+      lcdDrawFillRect(0, 16 + 16*box_i, 128, 16, white);
+
+      for (int i=0; i<3; i++)
+      {
+        if (i == box_i)
+        {
+          lcdPrintf(0, 16 + 16*i, black, " %d.%s", i+1, menu_list[i]);
+        }
+        else
+        {
+          lcdPrintf(0, 16 + 16*i, white, " %d.%s", i+1, menu_list[i]);
+        }
+      }
+      lcdRequestDraw();
+    }
 
     //lcdMain(&args);   
   }

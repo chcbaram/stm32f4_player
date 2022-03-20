@@ -141,7 +141,7 @@ bool lcdInit(void)
   lcdDrawFillRect(0, 0, LCD_WIDTH, LCD_HEIGHT, black);
   lcdUpdateDraw();
 
-  lcdSetBackLight(100);
+  lcdSetBackLight(10);
 
 
   if (is_init != true)

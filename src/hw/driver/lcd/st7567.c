@@ -113,9 +113,9 @@ bool driverReset(void)
   writeCommand(0xA2 | (0<<0)); // Select bias setting
                                // 0=1/9
   writeCommand(0x28 | (7<<0)); // Control built-in power circuit ON/OFF
-  writeCommand(0x24);          // Select regulation resistor ratio 0x25
+  writeCommand(0x25);          // Select regulation resistor ratio 0x25
   writeCommand(0x81);          // Set EV 0x81
-  writeCommand(0x19);          // Set EV 0x19
+  writeCommand(0x10);          // Set EV 0x19
   writeCommand(0x40);
   writeCommand(0xAF);
 
