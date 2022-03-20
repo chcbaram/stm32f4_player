@@ -174,7 +174,8 @@ bool buttonObjUpdate(button_obj_t *p_obj)
       }
       else
       {
-        p_obj->state = BUTTON_OBJ_WAIT_FOR_PRESSED;
+        p_obj->state = BUTTON_OBJ_PRESSED;
+        p_obj->pre_time = millis();
       }
       break;
 
@@ -195,7 +196,9 @@ bool buttonObjUpdate(button_obj_t *p_obj)
       }
       else
       {
-        p_obj->state = BUTTON_OBJ_WAIT_FOR_PRESSED;
+        p_obj->state = BUTTON_OBJ_PRESSED;
+        p_obj->pre_time = millis();
+
       }
       break;
   }
