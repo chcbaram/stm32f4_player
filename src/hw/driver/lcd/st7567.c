@@ -118,6 +118,7 @@ bool driverReset(void)
   writeCommand(0x10);          // Set EV 0x19
   writeCommand(0x40);
   writeCommand(0xAF);
+  writeCommand(0xA6);          // INV=0, normal display
 
   driverFill(white);
   driverUpdateDraw();
