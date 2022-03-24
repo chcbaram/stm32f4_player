@@ -136,7 +136,7 @@ void SPI1_IRQHandler(void)
   */
 void SDIO_IRQHandler(void)
 {
-  //HAL_SD_IRQHandler(&hsd);
+  HAL_SD_IRQHandler(&hsd);
 }
 
 /**
@@ -172,7 +172,7 @@ void DMA2_Stream1_IRQHandler(void)
   */
 void DMA2_Stream3_IRQHandler(void)
 {
-  //HAL_DMA_IRQHandler(&hdma_sdio_rx);
+  HAL_DMA_IRQHandler(&hdma_sdio_rx);
 }
 
 /**
@@ -180,7 +180,7 @@ void DMA2_Stream3_IRQHandler(void)
   */
 void DMA2_Stream4_IRQHandler(void)
 {
-  //HAL_DMA_IRQHandler(&hdma_spi5_tx);
+  HAL_DMA_IRQHandler(&hdma_spi5_tx);
 }
 
 /**
@@ -202,7 +202,7 @@ void OTG_FS_IRQHandler(void)
   */
 void DMA2_Stream6_IRQHandler(void)
 {
-  //HAL_DMA_IRQHandler(&hdma_sdio_tx);
+  HAL_DMA_IRQHandler(&hdma_sdio_tx);
 }
 
 /**
@@ -224,7 +224,7 @@ void SPI4_IRQHandler(void)
   */
 void SPI5_IRQHandler(void)
 {
-  //HAL_I2S_IRQHandler(&hi2s5);
+  HAL_I2S_IRQHandler(&hi2s5);
 }
 
 

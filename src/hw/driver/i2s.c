@@ -12,6 +12,7 @@
 #include "gpio.h"
 #include "lcd.h"
 #include "adc.h"
+#include "button.h"
 
 
 #ifdef _USE_HW_I2S
@@ -352,8 +353,10 @@ static void drawBlock(int16_t bx, int16_t by, uint16_t color)
   lcdDrawFillRect(x, y, bw-2, bh-2, color);
 }
 
-static void lcdUpdate(i2s_cli_t *p_args)
+static bool lcdUpdate(i2s_cli_t *p_args)
 {
+  bool ret = false;
+
   if (millis()-p_args->pre_time_lcd >= 50 && lcdDrawAvailable() == true)
   {
     p_args->pre_time_lcd = millis();
@@ -382,14 +385,14 @@ static void lcdUpdate(i2s_cli_t *p_args)
       {
         h = p_args->buf_q15[2*xi + 1];
         h = constrain(h, 0, 500);
-        h = map(h, 0, 500, 0, 80);
+        h = CMAP(h, 0, 500, 0, 80);
         if (h > max_h)
         {
           max_h = h;
         }
         xi++;
       }
-      h = map(max_h, 0, 80, 0, BLOCK_Y_CNT-1);
+      h = CMAP(max_h, 0, 80, 0, BLOCK_Y_CNT-1);
 
       p_args->block_target[i] = h;
 
@@ -444,7 +447,10 @@ static void lcdUpdate(i2s_cli_t *p_args)
 
 
     lcdRequestDraw();
+    ret = true;
   }
+
+  return ret;
 }
 
 uint32_t findID3Offset(uint8_t *readPtr)
@@ -469,8 +475,15 @@ void cliI2S(cli_args_t *args)
 {
   bool      ret = false;
   i2s_cli_t i2s_args;
-  uint16_t  volume = 0;
+  uint16_t  volume = 80;
   uint32_t  pre_time;
+  button_obj_t btn_mode;
+  button_obj_t btn_v_up;
+  button_obj_t btn_v_down;
+  
+  buttonObjCreate(&btn_v_up,   _DEF_BUTTON2, 50, 1000, 100);    
+  buttonObjCreate(&btn_v_down, _DEF_BUTTON3, 50, 1000, 100);    
+  buttonObjCreate(&btn_mode,   _DEF_BUTTON5, 50, 1000, 100);    
 
 
   memset(i2s_args.block_peak, 0, sizeof(i2s_args.block_peak));
@@ -498,6 +511,8 @@ void cliI2S(cli_args_t *args)
     FILE *fp;
     wavfile_header_t header;
     uint32_t r_len;
+    uint32_t buf_index = 0;
+    uint8_t view_mode = 0;
 
     file_name = args->getStr(1);
 
@@ -553,19 +568,51 @@ void cliI2S(cli_args_t *args)
       {
         pre_time = millis();
 
-        volume = constrain(adcRead12(0), 0, 4000);
-        volume = (uint16_t)(CMAP(volume, 0, 4000, 0, 100));
+        //volume = constrain(adcRead12(0), 0, 4000);
+        //volume = (uint16_t)(CMAP(volume, 0, 4000, 0, 100));
+        //volume  = 80;
 
-        lcdClearBuffer(black);
-        lcdSetFont(LCD_FONT_HAN);
-        lcdPrintf(24,16*0, green, "[ WAV 플레이 ]");
+        if (view_mode == 0)
+        {
+          lcdClearBuffer(black);
+          lcdSetFont(LCD_FONT_HAN);
+          lcdPrintf(8,16*0, green, "[ WAV 플레이 ]");
 
-        lcdSetFont(LCD_FONT_07x10);
-        lcdPrintf(0,18*1+10*0, white, "file Name : %s", file_name);
-        lcdPrintf(0,18*1+10*1, white, "sampleRate: %d Khz", header.SampleRate/1000);
-        lcdPrintf(0,18*1+10*2, white, "Num of ch : %d ch", header.NumChannels);
-        lcdPrintf(0,18*1+10*3, white, "Volume    : %d %%", volume);
-        lcdRequestDraw();
+          lcdSetFont(LCD_FONT_07x10);
+          lcdPrintf(0,18*1+10*0, white, "file Name : %s", file_name);
+          lcdPrintf(0,18*1+10*1, white, "sampleRate: %d Khz", header.SampleRate/1000);
+          lcdPrintf(0,18*1+10*2, white, "Num of ch : %d ch", header.NumChannels);
+          lcdPrintf(0,18*1+10*3, white, "Volume    : %d %%", volume);
+          lcdRequestDraw();
+        }
+      }
+
+      if (buttonObjUpdate(&btn_mode) == true)
+      {
+        if (buttonObjGetEvent(&btn_mode) & BUTTON_EVT_CLICKED)
+        {
+          view_mode++;
+          view_mode %= 2;
+        }
+        buttonObjClearEvent(&btn_mode);
+      }
+
+      if (buttonObjUpdate(&btn_v_up) == true)
+      {
+        if (buttonObjGetEvent(&btn_v_up) & BUTTON_EVT_CLICKED)
+        {
+          volume = constrain(volume + 10, 0, 100);          
+        }
+        buttonObjClearEvent(&btn_v_up);
+      }
+
+      if (buttonObjUpdate(&btn_v_down) == true)
+      {
+        if (buttonObjGetEvent(&btn_v_down) & BUTTON_EVT_CLICKED)
+        {
+          volume = constrain(volume - 10, 0, 100);          
+        }
+        buttonObjClearEvent(&btn_v_down);
       }
 
       buf_len = ((q_len + q_in - q_out) % q_len);
@@ -596,12 +643,27 @@ void cliI2S(cli_args_t *args)
             q_buf[q_offset + i].left  = buf_frame[i] * volume / 100;;
             q_buf[q_offset + i].right = buf_frame[i] * volume / 100;;
           }
+          if (buf_index < 512)
+          {
+            i2s_args.out_buf[buf_index*2 + 0] = q_buf[q_offset + i].left;
+            i2s_args.out_buf[buf_index*2 + 1] = q_buf[q_offset + i].right;
+            
+            buf_index++;            
+          }
         }
 
         if (((q_in + 1) % q_len) != q_out)
         {
           q_in = (q_in+1) % q_len;
         }
+      }
+
+      if (view_mode == 1 && buf_index == 512)
+      {        
+        if (lcdUpdate(&i2s_args) == true)
+        {
+          buf_index = 0;
+        }        
       }
     }
 
@@ -722,7 +784,7 @@ void cliI2S(cli_args_t *args)
           pre_time = millis();
 
           volume = constrain(adcRead12(0), 0, 4000);
-          volume = (uint16_t)(map(volume, 0, 4000, 0, 100));
+          volume = (uint16_t)(CMAP(volume, 0, 4000, 0, 100));
         }
 
         if (i2s_args.bytes_left < READBUF_SIZE)

@@ -31,6 +31,7 @@
 #define _DEF_BUTTON2          1
 #define _DEF_BUTTON3          2
 #define _DEF_BUTTON4          3
+#define _DEF_BUTTON5          4
 
 #define _DEF_SPI1             0
 #define _DEF_SPI2             1

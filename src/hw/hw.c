@@ -52,11 +52,11 @@ void hwInit(void)
   flashInit();
   spiInit();
   i2cInit();
-  //i2sInit();
+  i2sInit();
   pwmInit();
 
-  //sdInit();
-  //fatfsInit();
+  sdInit();
+  fatfsInit();
 
   lcdInit();
 

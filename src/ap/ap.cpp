@@ -24,6 +24,8 @@ LCD_IMAGE_DEF(img_logo2);
 
 void cliBoot(cli_args_t *args);
 void lcdMain(args_t *p_args);
+void sdMain(args_t *p_args);
+
 
 const char *menu_list[] = 
 {
@@ -81,6 +83,7 @@ void apMain(void)
 
     cliMain();
     lcdMain(&args);   
+    sdMain(&args);
   }
 }
 
@@ -125,7 +128,21 @@ void lcdMain(args_t *p_args)
   }
 }
 
+void sdMain(args_t *p_args)
+{
+  sd_state_t sd_state;
 
+
+  sd_state = sdUpdate();
+  if (sd_state == SDCARD_CONNECTED)
+  {
+    logPrintf("\nSDCARD_CONNECTED\n");
+  }
+  if (sd_state == SDCARD_DISCONNECTED)
+  {
+    logPrintf("\nSDCARD_DISCONNECTED\n");
+  }
+}
 
 void cliBoot(cli_args_t *args)
 {

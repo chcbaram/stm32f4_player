@@ -20,6 +20,12 @@ file(GLOB SRC_FILES CONFIGURE_DEPENDS
   src/hw/driver/usb/*.c
   src/hw/driver/usb/core/*.c
   src/hw/driver/usb/usb_cdc/*.c
+  src/hw/driver/usb/usb_msc/*.c
+  src/hw/driver/fatfs/*.c
+
+  lib/FatFs/src/*.c
+  lib/FatFs/src/option/syscall.c
+  lib/FatFs/src/option/ccsbcs.c
 )
 
 file(GLOB_RECURSE SRC_FILES_RECURSE CONFIGURE_DEPENDS
@@ -27,6 +33,7 @@ file(GLOB_RECURSE SRC_FILES_RECURSE CONFIGURE_DEPENDS
   src/ap/*.c
   src/common/*.c    
   lib/STM32F4xx_HAL_Driver/Src/*.c
+  lib/mp3/*.c
 )
 
 add_executable(${EXECUTABLE} 
@@ -53,11 +60,13 @@ target_include_directories(${EXECUTABLE} PRIVATE
   src/hw/driver/usb/core
   src/hw/driver/usb/usb_cdc
   src/hw/driver/usb/usb_msc
+  src/hw/driver/fatfs
   
   lib/CMSIS/Include
   lib/CMSIS/Device/ST/STM32F4xx/Include
   lib/CMSIS/DSP/Include
   lib/STM32F4xx_HAL_Driver/Inc
+  lib/FatFs/src
 )
 
 target_compile_definitions(${EXECUTABLE} PRIVATE
@@ -97,6 +106,9 @@ target_link_options(${EXECUTABLE} PRIVATE
   -Xlinker -print-memory-usage -Xlinker
   )
 
+target_link_libraries( ${EXECUTABLE} PRIVATE
+  ${CMAKE_SOURCE_DIR}/lib/CMSIS/libarm_cortexM4lf_math.a 
+  )
 
 add_custom_command(TARGET ${EXECUTABLE} 
     POST_BUILD

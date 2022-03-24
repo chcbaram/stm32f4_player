@@ -19,10 +19,10 @@
 
 
 
-//#define _USE_HW_SD
-//#define _USE_HW_FATFS
+#define _USE_HW_SD
+#define _USE_HW_FATFS
 #define _USE_HW_FLASH
-//#define _USE_HW_FILES
+#define _USE_HW_FILES
 #define _USE_HW_RTC
 #define _USE_HW_RESET
 
@@ -50,7 +50,7 @@
 #define _USE_HW_CDC
 #define _USE_HW_USB
 #define      HW_USE_CDC             1
-#define      HW_USE_MSC             0
+#define      HW_USE_MSC             1
 
 #define _USE_HW_SPI
 #define      HW_SPI_MAX_CH          2
@@ -64,8 +64,8 @@
 #define _USE_HW_I2C
 #define      HW_I2C_MAX_CH          1
 
-//#define _USE_HW_I2S
-//#define      HW_I2S_MAX_CH          1
+#define _USE_HW_I2S
+#define      HW_I2S_MAX_CH          1
 
 #define _USE_HW_ADC
 #define      HW_ADC_MAX_CH          1
@@ -75,7 +75,7 @@
 
 
 #define _PIN_GPIO_SDCARD_DETECT     0
-#define _PIN_GPIO_SPK_EN            6
+#define _PIN_GPIO_SPK_EN            4
 
 
 #define FLASH_ADDR_BOOT_VER         0x8000400
