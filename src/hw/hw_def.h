@@ -14,7 +14,7 @@
 
 
 
-#define _DEF_FIRMWATRE_VERSION    "V220320R1"
+#define _DEF_FIRMWATRE_VERSION    "V220323R1"
 #define _DEF_BOARD_NAME           "STM32F_PLAYER"
 
 
@@ -41,11 +41,11 @@
 #define      HW_CLI_LINE_BUF_MAX    64
 
 #define _USE_HW_BUTTON
-#define      HW_BUTTON_MAX_CH       1
+#define      HW_BUTTON_MAX_CH       5
 #define      HW_BUTTON_OBJ_USE      1
 
 #define _USE_HW_GPIO
-#define      HW_GPIO_MAX_CH         7
+#define      HW_GPIO_MAX_CH         5
 
 #define _USE_HW_CDC
 #define _USE_HW_USB
