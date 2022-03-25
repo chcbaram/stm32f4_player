@@ -81,7 +81,10 @@ void apMain(void)
       //ledToggle(_DEF_LED1);
     }
 
-    cliMain();
+    if (cliMain() == true)
+    {
+      args.update_screen = true;
+    }
     lcdMain(&args);   
     sdMain(&args);
   }

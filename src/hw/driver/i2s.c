@@ -26,7 +26,7 @@ static uint32_t i2s_sample_rate = 16000;
 
 
 #define I2S_BUF_LEN   (1024*4)
-#define I2S_BUF_MS    (10)
+#define I2S_BUF_MS    (8)
 
 
 typedef struct
@@ -153,6 +153,85 @@ bool i2sStop(void)
   return true;
 }
 
+// https://m.blog.naver.com/PostView.nhn?blogId=hojoon108&logNo=80145019745&proxyReferer=https:%2F%2Fwww.google.com%2F
+//
+float i2sGetNoteHz(int8_t octave, int8_t note)
+{
+  float hz;
+  float f_note;
+
+  if (octave < 1) octave = 1;
+  if (octave > 8) octave = 8;
+
+  if (note <  1) note = 1;
+  if (note > 12) note = 12;
+
+  f_note = (float)(note-10)/12.0f;
+
+  hz = pow(2, (octave-1)) * 55 * pow(2, f_note);
+
+  return hz;
+}
+
+// https://gamedev.stackexchange.com/questions/4779/is-there-a-faster-sine-function
+//
+float i2sSin(float x)
+{
+  const float B = 4 / M_PI;
+  const float C = -4 / (M_PI * M_PI);
+
+  return -(B * x + C * x * ((x < 0) ? -x : x));
+}
+
+bool i2sPlayNote(int8_t octave, int8_t note, uint16_t volume, uint32_t time_ms)
+{
+  uint32_t pre_time;
+  int32_t sample_rate = i2s_sample_rate;
+  //int32_t num_samples = I2S_BUF_MS * i2s_sample_rate / 1000;
+  int32_t num_samples = q_buf_len;
+  float sample_point;
+  //int16_t sample[num_samples];
+  int16_t sample_index = 0;
+  float div_freq;
+  //int8_t mix_ch;
+  int32_t volume_out;
+  uint32_t buf_len;
+
+  volume = constrain(volume, 0, 100);
+  volume_out = (INT16_MAX/40) * volume / 100;
+
+  i2sStart();
+
+  div_freq = (float)sample_rate/(float)i2sGetNoteHz(octave, note);
+
+  pre_time = millis();
+  while(millis()-pre_time <= time_ms)
+  {
+    buf_len = ((q_len + q_in - q_out) % q_len);
+    buf_len = (q_len - buf_len) - 1;
+
+    if (buf_len > 0)
+    {
+      for (int i=0; i<num_samples; i++)
+      {
+        sample_point = i2sSin(2 * M_PI * (float)(sample_index) / ((float)div_freq));
+        //sample[i] = (int16_t)(sample_point * volume_out);
+        q_buf[q_in*q_buf_len + i].left  = (int16_t)(sample_point * volume_out);
+        q_buf[q_in*q_buf_len + i].right = (int16_t)(sample_point * volume_out);
+        sample_index = (sample_index + 1) % (int)div_freq;
+      }
+      
+      if (((q_in + 1) % q_len) != q_out)
+      {
+        q_in = (q_in+1) % q_len;
+      }
+    }
+  }
+
+  i2sStop();
+
+  return true;
+}
 
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -475,7 +554,7 @@ void cliI2S(cli_args_t *args)
 {
   bool      ret = false;
   i2s_cli_t i2s_args;
-  uint16_t  volume = 80;
+  uint16_t  volume = 10;
   uint32_t  pre_time;
   button_obj_t btn_mode;
   button_obj_t btn_v_up;
@@ -583,6 +662,7 @@ void cliI2S(cli_args_t *args)
           lcdPrintf(0,18*1+10*1, white, "sampleRate: %d Khz", header.SampleRate/1000);
           lcdPrintf(0,18*1+10*2, white, "Num of ch : %d ch", header.NumChannels);
           lcdPrintf(0,18*1+10*3, white, "Volume    : %d %%", volume);
+          lcdSetFont(LCD_FONT_HAN);
           lcdRequestDraw();
         }
       }
@@ -628,6 +708,8 @@ void cliI2S(cli_args_t *args)
         }
 
         uint32_t q_offset;
+        int16_t left_out;
+        int16_t right_out;
 
         q_offset = q_in*q_buf_len;
 
@@ -637,16 +719,22 @@ void cliI2S(cli_args_t *args)
           {
             q_buf[q_offset + i].left  = buf_frame[i*2 + 0] * volume / 100;;
             q_buf[q_offset + i].right = buf_frame[i*2 + 1] * volume / 100;;
+
+            left_out  = buf_frame[i*2 + 0];
+            right_out = buf_frame[i*2 + 1];
           }
           else
           {
             q_buf[q_offset + i].left  = buf_frame[i] * volume / 100;;
             q_buf[q_offset + i].right = buf_frame[i] * volume / 100;;
+
+            left_out  = buf_frame[i];
+            right_out = buf_frame[i];
           }
           if (buf_index < 512)
           {
-            i2s_args.out_buf[buf_index*2 + 0] = q_buf[q_offset + i].left;
-            i2s_args.out_buf[buf_index*2 + 1] = q_buf[q_offset + i].right;
+            i2s_args.out_buf[buf_index*2 + 0] = left_out;
+            i2s_args.out_buf[buf_index*2 + 1] = right_out;
             
             buf_index++;            
           }
@@ -865,6 +953,20 @@ void cliI2S(cli_args_t *args)
     }
   }
 
+  if (args->argc == 4 && args->isStr(0, "play_note") == true)
+  {
+    int8_t note;
+    int8_t octave;
+    uint32_t time_ms;
+
+    octave = args->getData(1);
+    note = args->getData(2);
+    time_ms = args->getData(3);
+
+    i2sPlayNote(octave, note, 100, time_ms);
+
+    ret = true;
+  }
 
 
   if (ret != true)
@@ -872,6 +974,7 @@ void cliI2S(cli_args_t *args)
     cliPrintf("i2s info\n");
     cliPrintf("i2s play_wav filename\n");
     cliPrintf("i2s play_mp3 filename\n");
+    cliPrintf("i2s play_note octave note ms\n");
   }
 }
 #endif

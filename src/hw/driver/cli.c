@@ -194,6 +194,8 @@ void cliShowPrompt(cli_t *p_cli)
 
 bool cliMain(void)
 {
+  bool ret = false;
+
   if (cli_node.is_open != true)
   {
     return false;
@@ -201,10 +203,10 @@ bool cliMain(void)
 
   if (uartAvailable(cli_node.ch) > 0)
   {
-    cliUpdate(&cli_node, uartRead(cli_node.ch));
+    ret = cliUpdate(&cli_node, uartRead(cli_node.ch));
   }
 
-  return true;
+  return ret;
 }
 
 uint32_t cliAvailable(void)
@@ -241,7 +243,7 @@ bool cliUpdate(cli_t *p_cli, uint8_t rx_data)
         if (line->count > 0)
         {
           cliLineAdd(p_cli);
-          cliRunCmd(p_cli);
+          ret = cliRunCmd(p_cli);
         }
 
         line->count = 0;
@@ -517,6 +519,7 @@ bool cliRunCmd(cli_t *p_cli)
         p_cli->cmd_args.argc =  p_cli->argc - 1;
         p_cli->cmd_args.argv = &p_cli->argv[1];
         p_cli->cmd_list[i].cmd_func(&p_cli->cmd_args);
+        ret = true;
         break;
       }
     }
