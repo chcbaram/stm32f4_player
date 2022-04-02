@@ -224,9 +224,14 @@ uint8_t buttonObjGetEvent(button_obj_t *p_obj)
   return p_obj->event_flag;
 }
 
-void buttonObjClearEvent(button_obj_t *p_obj)
+void buttonObjClearEventAll(button_obj_t *p_obj)
 {
   p_obj->event_flag = 0;
+}
+
+void buttonObjClearEvent(button_obj_t *p_obj, uint8_t event_bit)
+{
+  p_obj->event_flag &= ~event_bit; 
 }
 
 uint8_t buttonObjGetState(button_obj_t *p_obj)
@@ -283,7 +288,7 @@ void cliButton(cli_args_t *args)
         if (button_event & BUTTON_EVT_RELEASED)
           cliPrintf("button released\n");    
 
-        buttonObjClearEvent(&button_sw);
+        buttonObjClearEventAll(&button_sw);
       }      
 
       delay(5);

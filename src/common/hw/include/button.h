@@ -54,7 +54,8 @@ uint16_t buttonGetData(void);
 void buttonObjCreate(button_obj_t *p_obj, uint8_t ch, uint32_t pressed_time, uint32_t repeat_start_time, uint32_t repeat_pressed_time);
 bool buttonObjUpdate(button_obj_t *p_obj);
 uint8_t buttonObjGetEvent(button_obj_t *p_obj);
-void buttonObjClearEvent(button_obj_t *p_obj);
+void buttonObjClearEventAll(button_obj_t *p_obj);
+void buttonObjClearEvent(button_obj_t *p_obj, uint8_t event_bit);
 uint8_t buttonObjGetState(button_obj_t *p_obj);
 
 #endif

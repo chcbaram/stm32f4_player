@@ -12,10 +12,23 @@
 typedef struct
 {
   uint32_t pre_time;
-  button_obj_t btn_sw;    
+  button_obj_t btn_menu_up;    
+  button_obj_t btn_menu_down;    
+  button_obj_t btn_menu_enter;    
   uint8_t box_i;
+  uint8_t menu_show_offset;
+  uint8_t menu_show_cnt;
+  uint8_t menu_max_cnt;  
   bool update_screen;  
+
+  sd_state_t sd_state;  
 } args_t;
+
+typedef struct 
+{
+  const char *name;
+  void (*func)(void *arg);
+} menu_item_t;
 
 
 
@@ -23,15 +36,20 @@ LCD_IMAGE_DEF(img_logo);
 LCD_IMAGE_DEF(img_logo2);
 
 void cliBoot(cli_args_t *args);
-void lcdMain(args_t *p_args);
-void sdMain(args_t *p_args);
+void initArgs(args_t *p_args);
+void lcdLoop(args_t *p_args);
+void sdLoop(args_t *p_args);
 
 
-const char *menu_list[] = 
+static void runMenuAbout(void *arg);
+static void runMenuEmpty(void *arg);
+
+const menu_item_t menu_list[] = 
 {
-  "Files",
-  "Setup",
-  "About"
+  {"Files", NULL},
+  {"Setup", NULL},
+  {"Info", NULL},
+  {"About", runMenuAbout},
 };
 
 
@@ -61,52 +79,89 @@ void apInit(void)
 
 void apMain(void)
 {
-  uint32_t pre_time;
   args_t args;
 
 
-  
+  initArgs(&args);
 
-  args.box_i = 0;
-  args.pre_time = millis();
-  args.update_screen = true;
-  buttonObjCreate(&args.btn_sw, 0, 50, 1000, 100);      
-
-  pre_time = millis();
   while(1)
   {
-    if (millis()-pre_time >= 500)
-    {
-      pre_time = millis();
-      //ledToggle(_DEF_LED1);
-    }
-
     if (cliMain() == true)
     {
       args.update_screen = true;
     }
-    lcdMain(&args);   
-    sdMain(&args);
+    lcdLoop(&args);   
+    sdLoop(&args);
   }
 }
 
-void lcdMain(args_t *p_args)
+void initArgs(args_t *p_args)
+{
+  p_args->box_i = 0;
+  p_args->pre_time = millis();
+  p_args->update_screen = true;
+  p_args->menu_show_offset = 0;
+  p_args->menu_show_cnt = 3;
+  p_args->menu_max_cnt = sizeof(menu_list)/sizeof(menu_item_t);
+
+  buttonObjCreate(&p_args->btn_menu_up, 1, 50, 1000, 100);      
+  buttonObjCreate(&p_args->btn_menu_down, 2, 50, 1000, 100);      
+  buttonObjCreate(&p_args->btn_menu_enter, 3, 50, 1000, 100);      
+}
+
+void lcdLoop(args_t *p_args)
 {
   if (lcdIsInit() != true)
   {
     return;
   }
 
-  if (buttonObjUpdate(&p_args->btn_sw) == true)
+  buttonObjUpdate(&p_args->btn_menu_up);
+  buttonObjUpdate(&p_args->btn_menu_down);
+  buttonObjUpdate(&p_args->btn_menu_enter);
+
+  if (buttonObjGetEvent(&p_args->btn_menu_up) & BUTTON_EVT_CLICKED)
   {
-    if (buttonObjGetEvent(&p_args->btn_sw) & BUTTON_EVT_CLICKED)
+    if (p_args->box_i > 0)
+      p_args->box_i = (p_args->box_i - 1);
+    else
+      p_args->box_i = p_args->menu_max_cnt - 1;
+
+    p_args->update_screen = true;
+    buttonObjClearEvent(&p_args->btn_menu_up, BUTTON_EVT_CLICKED);    
+  } 
+
+  if (buttonObjGetEvent(&p_args->btn_menu_down) & BUTTON_EVT_CLICKED)
+  {
+    p_args->box_i = (p_args->box_i + 1) % p_args->menu_max_cnt;
+
+    p_args->update_screen = true;
+    buttonObjClearEvent(&p_args->btn_menu_down, BUTTON_EVT_CLICKED);    
+  }  
+
+  if (buttonObjGetEvent(&p_args->btn_menu_enter) & BUTTON_EVT_CLICKED)
+  {
+    if (menu_list[p_args->box_i].func != NULL)
     {
-      p_args->box_i = (p_args->box_i + 1) % 3;
-      p_args->update_screen = true;
-    } 
-    buttonObjClearEvent(&p_args->btn_sw);
+      menu_list[p_args->box_i].func(p_args);
+    }  
+    else
+    {
+      runMenuEmpty(p_args);
+    }
+    buttonObjClearEvent(&p_args->btn_menu_enter, BUTTON_EVT_CLICKED);    
+  }  
+
+  if (p_args->box_i < p_args->menu_show_offset)
+  {
+    p_args->menu_show_offset = p_args->box_i;
   }
-    
+
+  if (p_args->box_i >= (p_args->menu_show_offset + p_args->menu_show_cnt))
+  {
+    p_args->menu_show_offset = p_args->box_i - (p_args->menu_show_cnt - 1) ;
+  }
+
   if (p_args->update_screen == true)
   {
     p_args->update_screen = false;
@@ -114,37 +169,82 @@ void lcdMain(args_t *p_args)
     lcdClearBuffer(black);
     lcdDrawRect(0, 0, 128, 64, white);
     lcdPrintf(32, 0, white, "- Menu -");      
-    lcdDrawFillRect(0, 16 + 16*p_args->box_i, 128, 16, white);
+    lcdDrawFillRect(0, 16 + 16*(p_args->box_i-p_args->menu_show_offset), 128, 16, white);
 
-    for (int i=0; i<3; i++)
+    uint8_t i_start;
+    uint8_t i_end;
+
+    i_start = p_args->menu_show_offset;
+    i_end   = p_args->menu_show_offset + p_args->menu_show_cnt;
+    for (int i=i_start; i<i_end; i++)
     {
       if (i == p_args->box_i)
       {
-        lcdPrintf(0, 16 + 16*i, black, " %d.%s", i+1, menu_list[i]);
+        lcdPrintf(0, 16 + 16*(i-i_start), black, " %d.%s", i+1, menu_list[i]);
       }
       else
       {
-        lcdPrintf(0, 16 + 16*i, white, " %d.%s", i+1, menu_list[i]);
+        lcdPrintf(0, 16 + 16*(i-i_start), white, " %d.%s", i+1, menu_list[i]);
       }
     }
+
     lcdRequestDraw();
   }
 }
 
-void sdMain(args_t *p_args)
+void sdLoop(args_t *p_args)
 {
-  sd_state_t sd_state;
-
-
-  sd_state = sdUpdate();
-  if (sd_state == SDCARD_CONNECTED)
+  p_args->sd_state = sdUpdate();
+  if (p_args->sd_state == SDCARD_CONNECTED)
   {
     logPrintf("\nSDCARD_CONNECTED\n");
   }
-  if (sd_state == SDCARD_DISCONNECTED)
+  if (p_args->sd_state == SDCARD_DISCONNECTED)
   {
     logPrintf("\nSDCARD_DISCONNECTED\n");
   }
+}
+
+void runMenuAbout(void *arg)
+{
+  args_t *p_args = (args_t *)arg;
+  uint16_t box_w = 128-32;
+  uint16_t box_h = 64-16;
+  uint16_t box_x;
+  uint16_t box_y;
+
+  box_x = (LCD_WIDTH-box_w)/2;
+  box_y = (LCD_HEIGHT-box_h)/2;
+
+  lcdDrawFillRect(box_x, box_y, box_w, box_h, white);
+  lcdDrawFillRect(box_x+2, box_y+2, box_w-4, box_h-4, black);
+  lcdPrintf(16, 16, white, " 만든이");
+  lcdPrintf(16, 32, white, " Baram");
+  lcdRequestDraw();
+  delay(1500);
+
+  p_args->update_screen = true;
+}
+
+void runMenuEmpty(void *arg)
+{
+  args_t *p_args = (args_t *)arg;
+  uint16_t box_w = 128-32;
+  uint16_t box_h = 32;
+  uint16_t box_x;
+  uint16_t box_y;
+
+  box_x = (LCD_WIDTH-box_w)/2;
+  box_y = (LCD_HEIGHT-box_h)/2;
+
+  lcdDrawFillRect(box_x-2, box_y-2, box_w+4, box_h+4, black);
+  lcdDrawFillRect(box_x, box_y, box_w, box_h, white);
+  lcdDrawFillRect(box_x+2, box_y+2, box_w-4, box_h-4, black);
+  lcdPrintf(16, 24, white, "   Empty");
+  lcdRequestDraw();
+  delay(1000);
+
+  p_args->update_screen = true;
 }
 
 void cliBoot(cli_args_t *args)

@@ -674,7 +674,7 @@ void cliI2S(cli_args_t *args)
           view_mode++;
           view_mode %= 2;
         }
-        buttonObjClearEvent(&btn_mode);
+        buttonObjClearEvent(&btn_mode, BUTTON_EVT_CLICKED);
       }
 
       if (buttonObjUpdate(&btn_v_up) == true)
@@ -683,7 +683,7 @@ void cliI2S(cli_args_t *args)
         {
           volume = constrain(volume + 10, 0, 100);          
         }
-        buttonObjClearEvent(&btn_v_up);
+        buttonObjClearEvent(&btn_v_up, BUTTON_EVT_CLICKED);
       }
 
       if (buttonObjUpdate(&btn_v_down) == true)
@@ -692,7 +692,7 @@ void cliI2S(cli_args_t *args)
         {
           volume = constrain(volume - 10, 0, 100);          
         }
-        buttonObjClearEvent(&btn_v_down);
+        buttonObjClearEvent(&btn_v_down, BUTTON_EVT_CLICKED);
       }
 
       buf_len = ((q_len + q_in - q_out) % q_len);
